@@ -22,8 +22,8 @@
 
 typedef struct Key_File {
   struct file_entry {
-    char *group, *key, *value;
+    char *comment, *group, *key, *value;
   } * file_entry;
   size_t length;
-  char delimiter, comment;
+  char delimiter, comment_indicator;
 } Key_File;

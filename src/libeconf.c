@@ -28,9 +28,10 @@
 #include <string.h>
 
 // Process the file of the given file_name and save its contents into key_file
-Key_File get_key_file(const char *file_name, const char delim,
-                      const char comment) {
-  Key_File read_file = {.delimiter = delim, .comment = comment};
+Key_File get_key_file(const char *file_name, char *delim,
+                      const char comment_indicator) {
+  Key_File read_file = {.delimiter = delim,
+                        .comment_indicator = comment_indicator};
 
   // File handle for the given file_name
   FILE *kf = fopen(file_name, "rb");
@@ -48,7 +49,7 @@ Key_File get_key_file(const char *file_name, const char delim,
 // Merge the contents of two key files
 Key_File merge_key_files(Key_File *usr_file, Key_File *etc_file) {
   Key_File merge_file = {.delimiter = usr_file->delimiter,
-                         .comment = usr_file->comment};
+                         .comment_indicator = usr_file->comment_indicator};
   struct file_entry *fe =
       malloc((etc_file->length + etc_file->length) * sizeof(struct file_entry));
 
@@ -85,6 +86,8 @@ void write_key_file(Key_File key_file, const char *save_to_dir,
 
   // Write to file
   for (int i = 0; i < key_file.length; i++) {
+    if (key_file.file_entry[i].comment)
+      fprintf(kf, key_file.file_entry[i].comment);
     if (!i || strcmp(key_file.file_entry[i - 1].group,
                      key_file.file_entry[i].group)) {
       if (i)
@@ -104,15 +107,15 @@ void write_key_file(Key_File key_file, const char *save_to_dir,
 // Wrapper function to perform the merge in one step
 void merge_files(const char *save_to_dir, const char *file_name,
                  const char *etc_path, const char *usr_path,
-                 const char delimiter, const char comment) {
+                 const char delimiter, const char comment_indicator) {
 
   /* --- GET KEY FILES --- */
 
   char *usr_file_name = combine_path_name(usr_path, file_name);
   char *etc_file_name = combine_path_name(etc_path, file_name);
 
-  Key_File usr_file = get_key_file(usr_file_name, delimiter, comment);
-  Key_File etc_file = get_key_file(etc_file_name, delimiter, comment);
+  Key_File usr_file = get_key_file(usr_file_name, delimiter, comment_indicator);
+  Key_File etc_file = get_key_file(etc_file_name, delimiter, comment_indicator);
 
   /* --- MERGE KEY FILES --- */
 

@@ -29,5 +29,9 @@ Key_File fill_key_file(Key_File read_file, FILE *kf);
 void end_of_line(struct file_entry **fe, size_t *len, size_t *lnum, size_t vlen,
                  char *buffer);
 
+// Write the comment into the comment variable of the file_entry struct
+void write_comment(struct file_entry **fe, FILE *kf, size_t *vlen,
+                   char **buffer, size_t file_length, char comment);
+
 // Check whether the key file has enough memory allocated, if not realloc
 void new_kf_line(struct file_entry **fe, size_t *file_length, size_t *lnum);

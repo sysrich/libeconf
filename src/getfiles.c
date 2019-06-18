@@ -31,10 +31,12 @@ Key_File fill_key_file(Key_File read_file, FILE *kf) {
   // is allocated
   const size_t LLEN = 8, LNUM = 16;
   size_t file_length = 0, lnum = LNUM, llen = LLEN, vlen = 0;
-  char ch;
+  char ch, comment = read_file.comment_indicator;
+  char keep_comments = 0;
+
   // Allocate memory for the Key_File based on LNUM
   struct file_entry *fe = malloc(LNUM * sizeof(struct file_entry));
-  fe->group = malloc(3), fe->key = NULL;
+  fe->group = malloc(3), fe->key = NULL, fe->comment = NULL;
   snprintf(fe->group, 3, "[]");
   char *buffer = malloc(LLEN);
 
@@ -43,21 +45,22 @@ Key_File fill_key_file(Key_File read_file, FILE *kf) {
       buffer = realloc(buffer, llen * 2);
       llen *= 2;
     }
-    if (ch == '\n') {
+    if (ch == '\n' && *buffer != comment) {
       if (vlen == 0)
         continue;
       end_of_line(&fe, &file_length, &lnum, vlen, buffer);
     }
     // If the current char is the delimiter consider the part before to
     // be a key.
-    else if (ch == read_file.delimiter) {
+    else if (ch == read_file.delimiter && !fe[file_length].key &&
+             *buffer != comment) {
       buffer[vlen++] = 0;
       fe[file_length].key = malloc(vlen);
       snprintf(fe[file_length].key, vlen, buffer);
     }
     // If the line contains the given comment char ignore the rest
     // of the line and proceed with the next
-    else if (ch == read_file.comment) {
+    else if (ch == comment && !keep_comments) {
       if (vlen != 0)
         end_of_line(&fe, &file_length, &lnum, vlen, buffer);
       getline(&buffer, &llen, kf);
@@ -65,6 +68,8 @@ Key_File fill_key_file(Key_File read_file, FILE *kf) {
     // Default case: append the char to the buffer
     else {
       buffer[vlen++] = ch;
+      if (ch == '\n' && keep_comments)
+        write_comment(&fe, kf, &vlen, &buffer, file_length, comment);
       continue;
     }
     vlen = 0;
@@ -112,6 +117,21 @@ void end_of_line(struct file_entry **fe, size_t *len, size_t *lnum, size_t vlen,
   }
 }
 
+// Write the comment into the comment variable of the file_entry struct
+void write_comment(struct file_entry **fe, FILE *kf, size_t *vlen,
+                   char **buffer, size_t file_length, char comment) {
+  char ch = getc(kf);
+  if (ch == '\n' || ch == comment) {
+    (*buffer)[(*vlen)++] = ch;
+  } else {
+    fseek(kf, -1, SEEK_CUR);
+    (*buffer)[(*vlen)++] = 0;
+    (*fe)[file_length].comment = malloc(*vlen);
+    snprintf((*fe)[file_length].comment, *vlen, *buffer);
+    (*vlen) = 0;
+  }
+}
+
 // Check whether the key file has enough memory allocated, if not realloc
 void new_kf_line(struct file_entry **fe, size_t *file_length, size_t *lnum) {
   if (++(*file_length) >= *lnum) {
@@ -120,4 +140,5 @@ void new_kf_line(struct file_entry **fe, size_t *file_length, size_t *lnum) {
   }
   (*fe)[*file_length].group = "[]";
   (*fe)[*file_length].key = NULL;
+  (*fe)[*file_length].comment = NULL;
 }
