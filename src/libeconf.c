@@ -89,6 +89,7 @@ Key_File *econf_merge_key_files(Key_File *usr_file, Key_File *etc_file) {
   }
   merge_length = merge_existing_groups(&fe, usr_file, etc_file, merge_length);
   merge_file->length = add_new_groups(&fe, usr_file, etc_file, merge_length);
+  merge_file->alloc_length = merge_file->length;
 
   merge_file->file_entry = fe;
   return merge_file;
@@ -157,7 +158,7 @@ void econf_merge_files(const char *save_to_dir, const char *file_name,
   free(usr_file_name);
   econf_destroy(usr_file);
   econf_destroy(etc_file);
-  econf_destroy_merged_file(merged_file);
+  econf_destroy(merged_file);
 }
 
 /* GETTER FUNCTIONS */
@@ -303,12 +304,6 @@ void econf_destroy(Key_File *key_file) {
     free(key_file->file_entry[i].key);
     free(key_file->file_entry[i].value);
   }
-  free(key_file->file_entry);
-  free(key_file);
-}
-
-// Wrapper function to free memory of merged file
-void econf_destroy_merged_file(Key_File *key_file) {
   free(key_file->file_entry);
   free(key_file);
 }
