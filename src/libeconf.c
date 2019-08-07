@@ -28,6 +28,7 @@
 #include "../include/mergefiles.h"
 
 #include <dirent.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -95,6 +96,31 @@ Key_File *econf_merge_key_files(Key_File *usr_file, Key_File *etc_file) {
   return merge_file;
 }
 
+Key_File *econf_merge_files(const char *file_name, char *delimiter, const char comment, ...) {
+  va_list ap;
+  va_start(ap, comment);
+  char *file_path = va_arg(ap, char *);
+
+  char *abs_file_name = combine_strings(file_path, file_name, '/');
+  Key_File *merged_file = econf_get_key_file(abs_file_name, delimiter, comment);
+  free(abs_file_name);
+
+  while((file_path = va_arg(ap, char *))) {
+    Key_File *tmp = merged_file;
+
+    abs_file_name = combine_strings(file_path, file_name, '/');
+    Key_File *next_file = econf_get_key_file(abs_file_name, delimiter, comment);
+    free(abs_file_name);
+
+    merged_file = econf_merge_key_files(merged_file, next_file);
+
+    econf_destroy(tmp);
+    econf_destroy(next_file);
+  }
+  va_end(ap);
+  return merged_file;
+}
+
 // Write content of a Key_File struct to specified location
 void econf_write_key_file(Key_File *key_file, const char *save_to_dir,
                     const char *file_name) {
@@ -130,35 +156,6 @@ void econf_write_key_file(Key_File *key_file, const char *save_to_dir,
   // Clean up
   free(save_to);
   fclose(kf);
-}
-
-// Wrapper function to perform the merge in one step
-void econf_merge_files(const char *save_to_dir, const char *file_name,
-                 const char *etc_path, const char *usr_path,
-                 char *delimiter, const char comment) {
-
-  /* --- GET KEY FILES --- */
-
-  char *usr_file_name = combine_strings(usr_path, file_name, '/');
-  char *etc_file_name = combine_strings(etc_path, file_name, '/');
-
-  Key_File *usr_file = econf_get_key_file(usr_file_name, delimiter, comment);
-  Key_File *etc_file = econf_get_key_file(etc_file_name, delimiter, comment);
-
-  /* --- MERGE KEY FILES --- */
-
-  Key_File *merged_file = econf_merge_key_files(usr_file, etc_file);
-
-  /* --- WRITE MERGED FILE --- */
-
-  econf_write_key_file(merged_file, save_to_dir, file_name);
-
-  /* --- CLEAN UP --- */
-  free(etc_file_name);
-  free(usr_file_name);
-  econf_destroy(usr_file);
-  econf_destroy(etc_file);
-  econf_destroy(merged_file);
 }
 
 /* GETTER FUNCTIONS */
