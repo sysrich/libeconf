@@ -32,7 +32,11 @@ int main() {
 
   clock_t begin = clock();
 
-  econf_merge_files("example/etc/example.conf.d", "example.ini", "example/etc/example", "example/usr/share/defaults", "=", '#');
+  // Always pass NULL as the last argument to indicate the end of the file list
+  Key_File *merged_file = econf_merge_files("example.ini", "=", '#',
+                                            "example/usr/share/defaults",
+                                            "example/etc/example",
+                                            NULL);
 
   //Key_File *key_file = econf_newIniFile();
   Key_File *key_file = econf_get_key_file("example/etc/example/example.ini", "=", '#');
@@ -59,7 +63,10 @@ int main() {
   econf_setValue(key_file, "Basic Types", "Generic", "Any value can go here!");
 
   econf_write_key_file(key_file, "example/", "test.ini");
+  econf_write_key_file(merged_file, "example/etc/example.conf.d", "example.ini");
+
   econf_destroy(key_file);
+  econf_destroy(merged_file);
 
   clock_t end = clock();
 
